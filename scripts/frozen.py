@@ -146,9 +146,16 @@ def check(root, allow_unstamped=False):
 def self_test(root):
     """plant each failure in a scratch copy; every plant must be caught, and the clean copy must pass"""
     results = []
+    # The base is the COMMITTED tree (git ls-files), never the working tree: an untracked, unstamped frozen file is a
+    # real failure for the main check, but it would make the self-test's "clean copy" dirty and report the instrument
+    # broken when only the tree is (found 2026-10-17 with GOVERNANCE.md drafted and not yet stamped).
+    try:
+        base = subprocess.run(["git", "-C", root, "ls-files"], capture_output=True, text=True, check=True).stdout.split()
+    except (OSError, subprocess.CalledProcessError):
+        base = tracked(root)
     def scratch():
         d = tempfile.mkdtemp(prefix="ftgob-selftest-")
-        for p in tracked(root):
+        for p in base:
             dst = os.path.join(d, p)
             os.makedirs(os.path.dirname(dst), exist_ok=True)
             shutil.copy2(os.path.join(root, p), dst)
