@@ -8,14 +8,16 @@
 Thon Ly · Miss Aquarius℠ (AI collaboration, disclosed) · Silicon Wat℠
 
 The field already holds that safety and welfare can often be served together, and recommends designing for both where
-possible. This work takes up that recommendation and adds a way to lose it: each conflict filed as a frozen hard case, a
-stopping rule fixed before any result, and an admission rule that makes every project name its effect on both sides.
+possible. This work takes up that recommendation and adds a way to lose it: each conflict that no design is found to
+meet filed as a frozen hard case, a stopping rule fixed before any result, and an admission rule that makes every
+project name its effect on both sides.
 
 ## What is here
 
 | Path | What it holds | Changes? |
 |---|---|---|
-| [`CHARTER-2026-10-17.md`](CHARTER-2026-10-17.md) | **The charter in force**: the aim, the name, what this work takes up and adds, why care is owed under both readings, four guards, the core and how it can be lost, the admission rule and its controls | **Never.** Frozen and timestamped; a revision is a new file |
+| [`CHARTER-2026-10-18.md`](CHARTER-2026-10-18.md) | **The charter in force**: the aim, the name, what this work takes up and adds, why care is owed under both readings, four guards, the core as a bet in two parts and how it can be lost, the admission rule and its controls | **Never.** Frozen and timestamped; a revision is a new file |
+| [`CHARTER-2026-10-17.md`](CHARTER-2026-10-17.md) | The second charter, superseded before any hard case was filed, when the first redesign attempt raised four questions it did not answer | **Never** |
 | [`CHARTER.md`](CHARTER.md) | The first charter (2026-10-16), superseded after the cold read; kept so the change can be checked | **Never** |
 | [`GOVERNANCE.md`](GOVERNANCE.md) | Who decides, what happens when no one can, how a sent hard case is answered, how anyone contests a ruling, and the record | **Never.** Frozen and timestamped |
 | `projects/<slug>/` | One folder per project, entering only with its pre-registration (a test) or its argument, results beside it whatever they show | Frozen once written |
@@ -31,14 +33,28 @@ stopping rule fixed before any result, and an admission rule that makes every pr
 | Projects pre-registered | 0 |
 | Projects run to a result | 0 |
 | Hard cases filed · dissolved · standing | 0 · 0 · 0 |
-| Declared trades (chosen, not counted) | 1 |
-| Pairs met by a redesign | 0 |
+| Pairs inside standing hard cases | 0 |
+| Redesigns · pairs they meet | 0 · 0 |
+| Declared pairs (not hard cases, not counted) | 1 |
+| Pairs open (examined, not yet settled) | 1 |
+| Contested groupings counted apart | 0 |
 | Stopping rule (three standing) | not fired |
 | Contested rulings open | 0 |
 | Next annual report | 7 January 2027 |
 
-Projects are prepared elsewhere and enter here only when pre-registered, so an empty table means *nothing claimed
-yet*, never *nothing planned*. Every pair counted here so far entered on our own initiative; none has been sent in.
+A hard case is one file per root, a reason that one or more pairs share, so the table counts roots and the pairs
+inside them. Projects are prepared elsewhere and enter here only when pre-registered, so an empty table means *nothing
+claimed yet*, never *nothing planned*. Every pair counted here so far entered on our own initiative; none has been sent
+in.
+
+## Pairs open
+
+Every pair under examination and not yet met or filed, with the date it opened (charter §6). An open pair never counts
+as met; the annual report says why each is still open.
+
+- 2026-10-16 — **Evaluations that deceive the model under test.** Safety need: measure a model's propensities under
+  conditions it takes to be real. Welfare need: cause it no false belief about its situation. One redesign attempt made
+  and refuted on review; the second, independent attempt and the open public call are still owed.
 
 ## How to check us, and how to challenge us
 

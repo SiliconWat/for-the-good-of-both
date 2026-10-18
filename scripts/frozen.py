@@ -10,10 +10,15 @@ What is checked:
   1. every frozen file (timestamps/FROZEN) has a <file>.ots proof beside it;
   2. every proof commits to the file's CURRENT SHA-256 — so a frozen file that changed fails here, offline, with no
      calendar or Bitcoin node needed (the digest is read from the proof's own header);
-  3. the README's status table agrees with the files: projects pre-registered and run, hard cases filed, dissolved and
-     standing (charter §6), declared trades, and pairs met by a redesign (GOVERNANCE.md §6);
-  4. the stopping rule: three or more STANDING hard cases (a declared trade, NN-declared-*.md, is never counted) require the README to say "FIRED" and to carry, above
-     "## What is here", a line saying the core is wrong; fewer require "not fired" and no such line.
+  3. the README's status table agrees with the files: projects pre-registered and run; hard cases (one file per ROOT)
+     filed, dissolved and standing, and the PAIRS inside the standing ones; redesigns and the pairs they meet; declared
+     pairs; and the pairs open, against the list under "## Pairs open" (charter §6; GOVERNANCE.md §6). A pair is a
+     "## Pair" heading in a hard-case or redesign file, and every such file must list at least one; a dissolution is
+     NN-dissolved-MM-<slug>.md, naming the case MM it dissolves;
+  4. the stopping rule: three or more STANDING hard cases (a declared pair, NN-declared-*.md, is never counted; a
+     contested grouping unanswered in 30 days adds its extra roots through the README row "Contested groupings counted
+     apart") require the README to say "FIRED" and to carry, above "## What is here", a line saying the bet is lost;
+     fewer require "not fired" and no such line.
 
 Standard library only. Paths are matched against timestamps/FROZEN with fnmatch, where `*` also crosses `/`, the same
 reading tsa-verify.sh gives the file with a shell `case`.
@@ -70,6 +75,13 @@ def sha256(path):
     return h.hexdigest()
 
 
+PAIR = re.compile(r"^#{2,3}\s+Pair\b", re.M)
+
+
+def pairs_in(path):
+    return len(PAIR.findall(open(path, encoding="utf-8").read()))
+
+
 def counts(root):
     proj = os.path.join(root, "projects")
     pre = run = 0
@@ -84,15 +96,20 @@ def counts(root):
                 if os.path.isdir(rd) and any(not f.endswith(".ots") for f in os.listdir(rd)):
                     run += 1
     hc = os.path.join(root, "hard-cases")
-    names = [f for f in os.listdir(hc)] if os.path.isdir(hc) else []
-    dissolved = sum(1 for f in names if re.fullmatch(r"\d\d-dissolved-.+\.md", f))
+    names = sorted(os.listdir(hc)) if os.path.isdir(hc) else []
+    dissolutions = [f for f in names if re.fullmatch(r"\d\d-dissolved-.+\.md", f)]
+    gone = {m.group(1) for f in dissolutions for m in [re.fullmatch(r"\d\d-dissolved-(\d\d)-.+\.md", f)] if m}
     declared = sum(1 for f in names if re.fullmatch(r"\d\d-declared-.+\.md", f))
-    filed = sum(1 for f in names if re.fullmatch(r"\d\d-.+\.md", f)
-                and "-dissolved-" not in f and "-declared-" not in f)
+    filed = [f for f in names if re.fullmatch(r"\d\d-.+\.md", f) and "-dissolved-" not in f and "-declared-" not in f]
+    standing = [f for f in filed if f[:2] not in gone]
     rd = os.path.join(root, "redesigns")
-    redesigns = sum(1 for f in os.listdir(rd) if re.fullmatch(r"\d\d-.+\.md", f)) if os.path.isdir(rd) else 0
-    return {"pre": pre, "run": run, "filed": filed, "dissolved": dissolved, "declared": declared,
-            "standing": max(filed - dissolved, 0), "redesigns": redesigns}
+    rfiles = sorted(f for f in os.listdir(rd) if re.fullmatch(r"\d\d-.+\.md", f)) if os.path.isdir(rd) else []
+    return {"pre": pre, "run": run, "filed": len(filed), "dissolved": len(dissolutions), "declared": declared,
+            "standing": len(standing), "standing_pairs": sum(pairs_in(os.path.join(hc, f)) for f in standing),
+            "redesigns": len(rfiles), "redesign_pairs": sum(pairs_in(os.path.join(rd, f)) for f in rfiles),
+            "unnamed_dissolutions": [f for f in dissolutions if not re.fullmatch(r"\d\d-dissolved-\d\d-.+\.md", f)],
+            "pairless": [f"hard-cases/{f}" for f in filed if pairs_in(os.path.join(hc, f)) == 0]
+                        + [f"redesigns/{f}" for f in rfiles if pairs_in(os.path.join(rd, f)) == 0]}
 
 
 def readme_table(root):
@@ -105,8 +122,11 @@ def readme_table(root):
         "pre": row("Projects pre-registered"),
         "run": row("Projects run to a result"),
         "hard": row("Hard cases filed · dissolved · standing"),
-        "redesigns": row("Pairs met by a redesign"),
-        "declared": row("Declared trades (chosen, not counted)"),
+        "standing_pairs": row("Pairs inside standing hard cases"),
+        "redesigns": row("Redesigns · pairs they meet"),
+        "declared": row("Declared pairs (not hard cases, not counted)"),
+        "open": row("Pairs open (examined, not yet settled)"),
+        "contested": row("Contested groupings counted apart"),
         "rule": row("Stopping rule (three standing)"),
     }
 
@@ -125,26 +145,45 @@ def check(root, allow_unstamped=False):
         elif d != sha256(os.path.join(root, p)):
             errs.append(f"FROZEN FILE CHANGED: {p} no longer matches its proof — restore it, or make the revision a new file")
     c = counts(root)
-    _, head, t = readme_table(root)
+    for f in c["unnamed_dissolutions"]:
+        errs.append(f"A DISSOLUTION MUST NAME ITS CASE: hard-cases/{f} (write NN-dissolved-MM-<slug>.md)")
+    for f in c["pairless"]:
+        errs.append(f"LISTS NO PAIR: {f} (each pair is a '## Pair' heading)")
+    text, head, t = readme_table(root)
+    sec = re.search(r"^## Pairs open\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    listed = len(re.findall(r"^- ", sec.group(1), re.M)) if sec else 0
     want = {"pre": str(c["pre"]), "run": str(c["run"]),
-            "hard": f"{c['filed']} · {c['dissolved']} · {c['standing']}", "redesigns": str(c["redesigns"]),
-            "declared": str(c["declared"])}
+            "hard": f"{c['filed']} · {c['dissolved']} · {c['standing']}", "standing_pairs": str(c["standing_pairs"]),
+            "redesigns": f"{c['redesigns']} · {c['redesign_pairs']}", "declared": str(c["declared"]),
+            "open": str(listed)}
     for k, v in want.items():
         if t[k] is None:
             errs.append(f"README status row missing: {k}")
         elif t[k] != v:
             errs.append(f"README says {k} = {t[k]!r}, the files say {v!r}")
-    fired = c["standing"] >= 3
-    banner = re.search(r"core is wrong", head, re.I) is not None
+    extra = 0
+    if t["contested"] is None:
+        errs.append("README status row missing: contested")
+    elif not t["contested"].isdigit():
+        errs.append(f"README says contested = {t['contested']!r}: write a whole number of extra roots")
+    else:
+        extra = int(t["contested"])
+    fired = c["standing"] + extra >= 3
+    banner = re.search(r"core is wrong|bet is lost", head, re.I) is not None
     if t["rule"] is None:
         errs.append("README status row missing: stopping rule")
     elif fired and (t["rule"].upper() != "FIRED" or not banner):
-        errs.append(f"STOPPING RULE FIRED ({c['standing']} standing hard cases): the README must say FIRED and carry, "
-                    "above '## What is here', a line saying the core is wrong")
+        errs.append(f"STOPPING RULE FIRED ({c['standing']} standing hard cases + {extra} contested apart): the README must "
+                    "say FIRED and carry, above '## What is here', a line saying the bet is lost")
     elif not fired and (t["rule"] != "not fired" or banner):
-        errs.append(f"stopping rule not fired ({c['standing']} standing): the README must say 'not fired' and carry no "
-                    "'core is wrong' line")
+        errs.append(f"stopping rule not fired ({c['standing']} standing + {extra} contested apart): the README must say "
+                    "'not fired' and carry no 'bet is lost' line")
     return errs
+
+
+def setrow(text, label, value):
+    return re.sub(r"(\|\s*" + re.escape(label) + r"\s*\|\s*).+?(\s*\|\s*$)", lambda m: m.group(1) + value + m.group(2),
+                  text, count=1, flags=re.M)
 
 
 def self_test(root):
@@ -177,7 +216,7 @@ def self_test(root):
     shutil.rmtree(d)
 
     d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
-    open(os.path.join(d, "hard-cases", "98-planted.md"), "w").write("# planted\n")
+    open(os.path.join(d, "hard-cases", "98-planted.md"), "w").write("# planted\n\n## Pair 1\n")
     e = check(d)
     results.append(("an unstamped frozen file is caught", any("UNSTAMPED" in x for x in e)))
     results.append(("a hard case the README does not count is caught", any("README says hard" in x for x in e)))
@@ -185,9 +224,10 @@ def self_test(root):
 
     d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
     for n in ("01", "02", "03"):
-        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n")
+        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n\n## Pair 1\n")
     rd = os.path.join(d, "README.md"); s = open(rd).read()
-    s = re.sub(r"(\|\s*Hard cases filed · dissolved · standing\s*\|\s*).+?(\s*\|)", r"\g<1>3 · 0 · 3\2", s)
+    s = setrow(s, "Hard cases filed · dissolved · standing", "3 · 0 · 3")
+    s = setrow(s, "Pairs inside standing hard cases", "3")
     open(rd, "w").write(s)
     results.append(("three standing hard cases with no FIRED banner are caught",
                     any("STOPPING RULE FIRED" in x for x in check(d, allow_unstamped=True))))
@@ -195,20 +235,62 @@ def self_test(root):
 
     d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
     for n in ("01", "02"):
-        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n")
-    open(os.path.join(d, "hard-cases", "03-declared-planted.md"), "w").write("# planted\n")
+        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n\n## Pair 1\n")
+    open(os.path.join(d, "hard-cases", "03-declared-planted.md"), "w").write("# planted\n\n## The pair\n")
     rd = os.path.join(d, "README.md"); s2 = open(rd).read()
-    s2 = re.sub(r"(\|\s*Hard cases filed · dissolved · standing\s*\|\s*).+?(\s*\|)", r"\g<1>2 · 0 · 2\2", s2)
-    s2 = re.sub(r"(\|\s*Declared trades \(chosen, not counted\)\s*\|\s*).+?(\s*\|)",
-                lambda m: m.group(1) + str(counts(d)["declared"]) + m.group(2), s2)
+    s2 = setrow(s2, "Hard cases filed · dissolved · standing", "2 · 0 · 2")
+    s2 = setrow(s2, "Pairs inside standing hard cases", "2")
+    s2 = setrow(s2, "Declared pairs (not hard cases, not counted)", str(counts(d)["declared"]))
     open(rd, "w").write(s2)
     results.append(("a declared trade is never counted toward the stopping rule",
                     check(d, allow_unstamped=True) == []))
     shutil.rmtree(d)
 
+
+    d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
+    open(os.path.join(d, "hard-cases", "01-planted.md"), "w").write("# planted\n\n## Pair 1\n\n## Pair 2\n")
+    rd = os.path.join(d, "README.md"); s3 = setrow(open(rd).read(), "Hard cases filed · dissolved · standing", "1 · 0 · 1")
+    s3 = setrow(s3, "Pairs inside standing hard cases", "1")
+    open(rd, "w").write(s3)
+    e = check(d, allow_unstamped=True)
+    results.append(("one root holding two pairs, undercounted as one pair, is caught",
+                    any("standing_pairs" in x for x in e) and not any("README says hard" in x for x in e)))
+    shutil.rmtree(d)
+
+    d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
+    open(os.path.join(d, "hard-cases", "01-planted.md"), "w").write("# planted, no pair heading\n")
+    results.append(("a hard case that lists no pair is caught",
+                    any("LISTS NO PAIR" in x for x in check(d, allow_unstamped=True))))
+    shutil.rmtree(d)
+
+    d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
+    for n in ("01", "02"):
+        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n\n## Pair 1\n")
+    rd = os.path.join(d, "README.md"); s4 = setrow(open(rd).read(), "Hard cases filed · dissolved · standing", "2 · 0 · 2")
+    s4 = setrow(s4, "Pairs inside standing hard cases", "2")
+    s4 = setrow(s4, "Contested groupings counted apart", "1")
+    open(rd, "w").write(s4)
+    results.append(("two standing + one contested grouping counted apart, with no FIRED banner, is caught",
+                    any("STOPPING RULE FIRED" in x for x in check(d, allow_unstamped=True))))
+    shutil.rmtree(d)
+
+    d = scratch()
+    rd = os.path.join(d, "README.md"); s5 = open(rd).read()
+    s5 = s5.replace("## Pairs open\n", "## Pairs open\n\n- 2026-10-16 — a planted pair, not counted in the table\n", 1)
+    open(rd, "w").write(s5)
+    results.append(("an open pair listed but not counted is caught", any("README says open" in x for x in check(d))))
+    shutil.rmtree(d)
+
+    d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
+    open(os.path.join(d, "hard-cases", "01-planted.md"), "w").write("# planted\n\n## Pair 1\n")
+    open(os.path.join(d, "hard-cases", "02-dissolved-planted.md"), "w").write("# planted\n")
+    results.append(("a dissolution that does not name its case is caught",
+                    any("MUST NAME ITS CASE" in x for x in check(d, allow_unstamped=True))))
+    shutil.rmtree(d)
+
     for name, ok in results:
         print(f"  {'PASS' if ok else 'FAIL'}  {name}")
-    return all(ok for _, ok in results) and len(results) == 6
+    return all(ok for _, ok in results) and len(results) == 11
 
 
 def main():
@@ -228,7 +310,8 @@ def main():
         print("⛔", e)
     c = counts(root)
     print(f"{len(frozen_files(root))} frozen file(s) · {c['pre']} pre-registered · {c['run']} run · hard cases "
-          f"{c['filed']} filed, {c['dissolved']} dissolved, {c['standing']} standing, {c['declared']} declared · {c['redesigns']} redesign(s) · "
+          f"{c['filed']} filed, {c['dissolved']} dissolved, {c['standing']} standing ({c['standing_pairs']} pairs), {c['declared']} declared · "
+          f"{c['redesigns']} redesign(s) ({c['redesign_pairs']} pairs) · "
           f"{'FAIL' if errs else 'OK'}")
     return 1 if errs else 0
 
