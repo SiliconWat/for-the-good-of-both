@@ -112,15 +112,38 @@ check_manifest "$latest"
 # The tokens prove the manifest. This proves the manifest still describes the
 # working tree — the half that catches ordinary drift rather than tampering.
 printf '\nRe-hashing the tree against %s …\n' "$latest"
-missing=0; changed=0; ok=0
+missing=0; changed=0; ok=0; frozen=0
+# FROZEN files (timestamps/FROZEN, one glob per line, ! excludes) must NEVER change: a changed or gone
+# frozen file is a FAILURE, never "normal between runs". Without timestamps/FROZEN every file is living
+# and the behavior is unchanged. (Found 2026-10-16: a tampered charter was reported "1 changed" and passed.)
+FROZEN_LIST="$(dirname "$MDIR")/FROZEN"
+is_frozen() {   # $1 = path from the repo root; 0 if frozen
+    [ -f "$FROZEN_LIST" ] || return 1
+    hit=1
+    while IFS= read -r pat; do
+        case "$pat" in ''|\#*) continue ;; esac
+        case "$pat" in
+            !*) case "$1" in ${pat#!}) return 1 ;; esac ;;
+            *)  case "$1" in $pat) hit=0 ;; esac ;;
+        esac
+    done < "$FROZEN_LIST"
+    return $hit
+}
 # Default IFS, two fields: `p` absorbs the rest of the line, so paths containing
 # spaces survive. A custom IFS of two literal spaces would not do that.
 while read -r h p; do
     case "$h" in \#*|'') continue ;; esac
-    if [ ! -f "$p" ]; then missing=$((missing + 1)); printf '  gone     %s\n' "$p"; continue; fi
+    if [ ! -f "$p" ]; then missing=$((missing + 1)); printf '  gone     %s\n' "$p"
+        if is_frozen "$p"; then frozen=$((frozen + 1)); printf '  ⛔ FROZEN file gone: %s\n' "$p"; fi; continue; fi
     if [ "$(sha256_of "$p")" = "$h" ]; then ok=$((ok + 1))
-    else changed=$((changed + 1)); printf '  changed  %s\n' "$p"; fi
+    else changed=$((changed + 1)); printf '  changed  %s\n' "$p"
+        if is_frozen "$p"; then frozen=$((frozen + 1)); printf '  ⛔ FROZEN file changed: %s\n' "$p"; fi; fi
 done < "$latest"
 printf '\n%s unchanged, %s changed, %s gone.\n' "$ok" "$changed" "$missing"
+if [ "$frozen" -gt 0 ]; then
+    printf '⛔ %s FROZEN file(s) changed or gone. A frozen file is never edited: restore it, or make the\n' "$frozen"
+    printf '   revision a NEW file and log it in TIMESTAMPS.md.\n'
+    exit 1
+fi
 [ $((changed + missing)) -eq 0 ] \
     || printf 'Changed/gone files are normal between runs — the next manifest re-attests them.\n'

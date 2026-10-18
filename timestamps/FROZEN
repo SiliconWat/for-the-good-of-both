@@ -1,0 +1,12 @@
+# The frozen paths of this repository: one shell glob per line, matched against the path from the repo root
+# (`*` also crosses `/`). A line starting with ! excludes. The ONE home of the list: tsa-verify.sh fails when a
+# frozen file has changed, scripts/frozen.py checks every frozen file against its OpenTimestamps proof, and the
+# OpenTimestamps workflow stamps what scripts/frozen.py --unstamped lists.
+CHARTER*.md
+GOVERNANCE*.md
+projects/*
+hard-cases/*
+redesigns/*
+!*README.md
+!*.ots
+!*.bak

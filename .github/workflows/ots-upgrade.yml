@@ -56,13 +56,9 @@ jobs:
 
       - name: Stamp any unstamped documents
         run: |
-          # FROZEN = CHARTER*.md, every file under projects/ and hard-cases/ except their README.md (TIMESTAMPS.md).
-          # LIVING and never stamped = README.md files and TIMESTAMPS.md: the weekly RFC 3161 manifest dates every
-          # version of those instead.
-          mapfile -t unstamped < <( { find . -maxdepth 1 -name 'CHARTER*.md' -print
-            for d in ./projects ./hard-cases; do
-              [ -d "$d" ] && find "$d" -type f ! -name '*.ots' ! -name '*.bak' ! -name 'README.md' -print
-            done; } | sort | while read -r f; do [ -f "$f.ots" ] || echo "$f"; done)
+          # FROZEN = the globs in timestamps/FROZEN (its one home), listed by scripts/frozen.py. LIVING and never
+          # stamped = README.md files and TIMESTAMPS.md: the weekly RFC 3161 manifest dates every version of those.
+          mapfile -t unstamped < <(python3 scripts/frozen.py --unstamped | sed '/^$/d')
           if [ ${#unstamped[@]} -eq 0 ]; then
             echo "All documents stamped." >> "$GITHUB_STEP_SUMMARY"
           else

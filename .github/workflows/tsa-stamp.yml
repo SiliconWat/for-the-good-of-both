@@ -37,7 +37,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["CHARTER*.md", "projects/**", "hard-cases/**"]
+    paths: ["CHARTER*.md", "GOVERNANCE*.md", "projects/**", "hard-cases/**", "redesigns/**"]
 
 concurrency:
   group: tsa-stamp

@@ -1,0 +1,32 @@
+name: The rules, checked
+
+# The charter's rules as properties, not promises. On every push and pull request, and weekly:
+#   1. the self-test plants each failure in a scratch copy and must catch every one (a check that has
+#      only ever passed is an untested claim);
+#   2. every frozen file (timestamps/FROZEN) has a proof and still matches it, offline;
+#   3. the README's status table agrees with the files in projects/, hard-cases/ and redesigns/;
+#   4. three standing hard cases require the README to say the stopping rule FIRED.
+# A new frozen file pushed without its .ots fails here on purpose: frozen files are stamped by hand at the push.
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 8 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Self-test (every planted failure must be caught)
+        run: python3 scripts/frozen.py --self-test
+      - name: Check the repository
+        run: python3 scripts/frozen.py
