@@ -1,6 +1,7 @@
 # Redesigns
 
-One file per pair, a safety requirement and a welfare requirement, that was examined and met by a design on the
-first attempt (GOVERNANCE.md §4). **None filed.** Each is `<NN>-<slug>.md`, frozen once written, and states the pair,
-the design, why it meets both, and under which reading of the machine-mind question (charter §3) each side binds.
-Successes are counted beside the failures in `hard-cases/`, so the record shows the bet's wins as well as its losses.
+One file per pair, a safety requirement and a welfare requirement, met by a design that meets both, on the first attempt
+or a later one, including a hard case later dissolved (GOVERNANCE.md §6). **None filed.** Each is `<NN>-<slug>.md`,
+frozen once written, and states the pair, the design, why it meets both, under which reading of the machine-mind question
+(charter §4) each side binds, and whether the pair was sent in or examined on our own initiative. Wins are counted beside
+the losses in `hard-cases/`; the record never claims a base rate.

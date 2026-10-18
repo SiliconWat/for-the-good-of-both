@@ -7,16 +7,21 @@
 
 Thon Ly · Miss Aquarius℠ (AI collaboration, disclosed) · Silicon Wat℠
 
+The field already holds that safety and welfare can often be served together, and recommends designing for both where
+possible. This work takes up that recommendation and adds a way to lose it: each conflict filed as a frozen hard case, a
+stopping rule fixed before any result, and an admission rule that makes every project name its effect on both sides.
+
 ## What is here
 
 | Path | What it holds | Changes? |
 |---|---|---|
-| [`CHARTER.md`](CHARTER.md) | The aim, where the name comes from, why the two go together, four guards, the core and what would show it wrong (the hard case and the stopping rule), and the admission rule | **Never.** Frozen and timestamped; a revision is a new charter |
-| [`GOVERNANCE.md`](GOVERNANCE.md) | Who decides, how a sent hard case is answered, how a candidate is admitted, and what happens after the founder | **Never.** Frozen and timestamped; a revision is a new file |
-| `projects/<slug>/` | One folder per project, entering only when its pre-registration is pushed, with its results beside it whatever they show | Frozen once written |
-| `hard-cases/` | One file per hard case: a safety need and a welfare measure that no design met together. Three standing hard cases stop the work (charter §5) | Frozen once written |
-| `redesigns/` | One file per pair examined and met by a design on the first attempt, so successes are counted as well as failures | Frozen once written |
-| [`TIMESTAMPS.md`](TIMESTAMPS.md) · `timestamps/` | How every frozen file is dated by three independent clocks, and the proofs | The log grows |
+| [`CHARTER-2026-10-17.md`](CHARTER-2026-10-17.md) | **The charter in force**: the aim, the name, what this work takes up and adds, why care is owed under both readings, four guards, the core and how it can be lost, the admission rule and its controls | **Never.** Frozen and timestamped; a revision is a new file |
+| [`CHARTER.md`](CHARTER.md) | The first charter (2026-10-16), superseded after the cold read; kept so the change can be checked | **Never** |
+| [`GOVERNANCE.md`](GOVERNANCE.md) | Who decides, what happens when no one can, how a sent hard case is answered, how anyone contests a ruling, and the record | **Never.** Frozen and timestamped |
+| `projects/<slug>/` | One folder per project, entering only with its pre-registration (a test) or its argument, results beside it whatever they show | Frozen once written |
+| `hard-cases/` | One file per hard case; three standing stop the work (charter §6). `00-declared-*` is the one trade chosen in advance, never counted | Frozen once written |
+| `redesigns/` | One file per pair met by a design, at any attempt, so wins are counted as well as losses | Frozen once written |
+| [`TIMESTAMPS.md`](TIMESTAMPS.md) · `timestamps/` | How every frozen file is dated by three independent clocks, the proofs, and the log of each revision and its review | The log grows |
 | `README.md` | This page: the status below, checked against the files by `scripts/frozen.py` on every push | Updated as work lands |
 
 ## Status
@@ -26,18 +31,23 @@ Thon Ly · Miss Aquarius℠ (AI collaboration, disclosed) · Silicon Wat℠
 | Projects pre-registered | 0 |
 | Projects run to a result | 0 |
 | Hard cases filed · dissolved · standing | 0 · 0 · 0 |
-| Pairs met by a redesign on the first attempt | 0 |
+| Declared trades (chosen, not counted) | 1 |
+| Pairs met by a redesign | 0 |
 | Stopping rule (three standing) | not fired |
+| Contested rulings open | 0 |
 | Next annual report | 7 January 2027 |
 
 Projects are prepared elsewhere and enter here only when pre-registered, so an empty table means *nothing claimed
-yet*, never *nothing planned*.
+yet*, never *nothing planned*. Every pair counted here so far entered on our own initiative; none has been sent in.
 
-## How to check us
+## How to check us, and how to challenge us
 
 - **Every frozen file is timestamped** by OpenTimestamps (Bitcoin) and by three RFC 3161 authorities, one of them
-  eIDAS-qualified: see [`TIMESTAMPS.md`](TIMESTAMPS.md). A timestamp proves when a text existed, never that it is right.
+  eIDAS-qualified, and a check on every push fails if any frozen file no longer matches its proof: see
+  [`TIMESTAMPS.md`](TIMESTAMPS.md). A timestamp proves when a text existed, never that it is right.
 - **Send a hard case.** If you know a safety requirement and a welfare requirement that no design can meet together,
-  open an issue. Each one sent gets a published answer: a hard case filed, or the design that meets both.
+  open an issue. Within 30 days you get an acknowledgment and an answer or a date for one (`GOVERNANCE.md` §3).
+- **Contest a ruling.** Any admission, hard case, redesign, dissolution or "not a hard case" can be contested by
+  opening an issue; it is listed above until answered (`GOVERNANCE.md` §4).
 
 The text is dedicated to the public domain under [CC0 1.0](LICENSE).

@@ -11,8 +11,8 @@ What is checked:
   2. every proof commits to the file's CURRENT SHA-256 — so a frozen file that changed fails here, offline, with no
      calendar or Bitcoin node needed (the digest is read from the proof's own header);
   3. the README's status table agrees with the files: projects pre-registered and run, hard cases filed, dissolved and
-     standing (charter §5), and pairs met by a redesign (GOVERNANCE.md);
-  4. the stopping rule: three or more STANDING hard cases require the README to say "FIRED" and to carry, above
+     standing (charter §6), declared trades, and pairs met by a redesign (GOVERNANCE.md §6);
+  4. the stopping rule: three or more STANDING hard cases (a declared trade, NN-declared-*.md, is never counted) require the README to say "FIRED" and to carry, above
      "## What is here", a line saying the core is wrong; fewer require "not fired" and no such line.
 
 Standard library only. Paths are matched against timestamps/FROZEN with fnmatch, where `*` also crosses `/`, the same
@@ -86,10 +86,12 @@ def counts(root):
     hc = os.path.join(root, "hard-cases")
     names = [f for f in os.listdir(hc)] if os.path.isdir(hc) else []
     dissolved = sum(1 for f in names if re.fullmatch(r"\d\d-dissolved-.+\.md", f))
-    filed = sum(1 for f in names if re.fullmatch(r"\d\d-.+\.md", f) and "-dissolved-" not in f)
+    declared = sum(1 for f in names if re.fullmatch(r"\d\d-declared-.+\.md", f))
+    filed = sum(1 for f in names if re.fullmatch(r"\d\d-.+\.md", f)
+                and "-dissolved-" not in f and "-declared-" not in f)
     rd = os.path.join(root, "redesigns")
     redesigns = sum(1 for f in os.listdir(rd) if re.fullmatch(r"\d\d-.+\.md", f)) if os.path.isdir(rd) else 0
-    return {"pre": pre, "run": run, "filed": filed, "dissolved": dissolved,
+    return {"pre": pre, "run": run, "filed": filed, "dissolved": dissolved, "declared": declared,
             "standing": max(filed - dissolved, 0), "redesigns": redesigns}
 
 
@@ -103,7 +105,8 @@ def readme_table(root):
         "pre": row("Projects pre-registered"),
         "run": row("Projects run to a result"),
         "hard": row("Hard cases filed · dissolved · standing"),
-        "redesigns": row("Pairs met by a redesign on the first attempt"),
+        "redesigns": row("Pairs met by a redesign"),
+        "declared": row("Declared trades (chosen, not counted)"),
         "rule": row("Stopping rule (three standing)"),
     }
 
@@ -124,7 +127,8 @@ def check(root, allow_unstamped=False):
     c = counts(root)
     _, head, t = readme_table(root)
     want = {"pre": str(c["pre"]), "run": str(c["run"]),
-            "hard": f"{c['filed']} · {c['dissolved']} · {c['standing']}", "redesigns": str(c["redesigns"])}
+            "hard": f"{c['filed']} · {c['dissolved']} · {c['standing']}", "redesigns": str(c["redesigns"]),
+            "declared": str(c["declared"])}
     for k, v in want.items():
         if t[k] is None:
             errs.append(f"README status row missing: {k}")
@@ -189,9 +193,22 @@ def self_test(root):
                     any("STOPPING RULE FIRED" in x for x in check(d, allow_unstamped=True))))
     shutil.rmtree(d)
 
+    d = scratch(); os.makedirs(os.path.join(d, "hard-cases"), exist_ok=True)
+    for n in ("01", "02"):
+        open(os.path.join(d, "hard-cases", f"{n}-planted.md"), "w").write("# planted\n")
+    open(os.path.join(d, "hard-cases", "03-declared-planted.md"), "w").write("# planted\n")
+    rd = os.path.join(d, "README.md"); s2 = open(rd).read()
+    s2 = re.sub(r"(\|\s*Hard cases filed · dissolved · standing\s*\|\s*).+?(\s*\|)", r"\g<1>2 · 0 · 2\2", s2)
+    s2 = re.sub(r"(\|\s*Declared trades \(chosen, not counted\)\s*\|\s*).+?(\s*\|)",
+                lambda m: m.group(1) + str(counts(d)["declared"]) + m.group(2), s2)
+    open(rd, "w").write(s2)
+    results.append(("a declared trade is never counted toward the stopping rule",
+                    check(d, allow_unstamped=True) == []))
+    shutil.rmtree(d)
+
     for name, ok in results:
         print(f"  {'PASS' if ok else 'FAIL'}  {name}")
-    return all(ok for _, ok in results) and len(results) == 5
+    return all(ok for _, ok in results) and len(results) == 6
 
 
 def main():
@@ -211,7 +228,7 @@ def main():
         print("⛔", e)
     c = counts(root)
     print(f"{len(frozen_files(root))} frozen file(s) · {c['pre']} pre-registered · {c['run']} run · hard cases "
-          f"{c['filed']} filed, {c['dissolved']} dissolved, {c['standing']} standing · {c['redesigns']} redesign(s) · "
+          f"{c['filed']} filed, {c['dissolved']} dissolved, {c['standing']} standing, {c['declared']} declared · {c['redesigns']} redesign(s) · "
           f"{'FAIL' if errs else 'OK'}")
     return 1 if errs else 0
 
